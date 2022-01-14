@@ -33,16 +33,16 @@ impl Blockchain {
 
         let genesis = Block {
             header: Header {
-                timestamp: (String::from("0")),
+                timestamp: "0".to_string(),
                 nonce: (BigInt::from(0)),
             },
             tr_data: Transaction {
-                from: String::from("Satoshi"),
-                to: String::from("GENESIS"),
+                from: "Satoshi".to_string(),
+                to: "GENESIS".to_string(),
                 amount: 100_000_000,
             },
             hash: Utc::now().timestamp().to_string(),
-            prev_hash: String::from("0"),
+            prev_hash: "0".to_string(),
         };
 
         block_chain_tmp.push_back(genesis);
@@ -53,14 +53,8 @@ impl Blockchain {
         }
     }
 
-    fn new_transaction(&mut self, tr_amount: usize) {
-        for _iter in 0..tr_amount {
-            self.tr_queue.push_back(Transaction {
-                from: String::from("sender"),
-                to: String::from("receiver"),
-                amount: rand::thread_rng().gen_range(0..100_000_000 as u64),
-            });
-        }
+    fn new_transaction(&mut self, from: String, to: String, amount: u64) {
+        self.tr_queue.push_back(Transaction { from, to, amount });
     }
 
     fn mint(&mut self) {
@@ -71,7 +65,7 @@ impl Blockchain {
 
         let mut new_block = Block {
             header: Header {
-                timestamp: String::from("0"),
+                timestamp: "0".to_string(),
                 nonce: BigInt::from(0),
             },
             tr_data: self.tr_queue.front().unwrap().clone(),
@@ -111,17 +105,20 @@ struct Header {
     timestamp: String,
     nonce: BigInt,
 }
+
 fn main() {
     let mut blnch: Blockchain = Blockchain::new(); //override ctor?
 
-    blnch.new_transaction(3); //queues transactions with a random amount
+    for _index in 0..3 {
+        blnch.new_transaction(
+            "Sender".to_string(),
+            "Receiver".to_string(),
+            rand::thread_rng().gen_range(0..100_000_000 as u64),
+        );
+        blnch.mint();
+    }
 
-    blnch.mint();
-    blnch.mint();
-
-    println!("{:#?}", blnch.chain);
-    println!("--------------------");
-    println!("{:#?}", blnch.tr_queue);
+    println!("{:#?}", blnch);
 }
 
 #[cfg(test)]
@@ -133,16 +130,16 @@ mod tests {
         let blnch: Blockchain = Blockchain::new();
         let genesis = Block {
             header: Header {
-                timestamp: (String::from("0")),
+                timestamp: "0".to_string(),
                 nonce: BigInt::from(0),
             },
             tr_data: Transaction {
-                from: String::from("Satoshi"),
-                to: String::from("GENESIS"),
+                from: "Satoshi".to_string(),
+                to: "GENESIS".to_string(),
                 amount: 100_000_000,
             },
             hash: Utc::now().timestamp().to_string(),
-            prev_hash: String::from("0"),
+            prev_hash: "0".to_string(),
         };
         assert_eq!(blnch.chain.front().unwrap(), &genesis);
     }
@@ -150,7 +147,13 @@ mod tests {
     #[test]
     fn new_transaction_test() {
         let mut blnch: Blockchain = Blockchain::new();
-        blnch.new_transaction(3);
+        for _index in 0..3 {
+            blnch.new_transaction(
+                "Sender".to_string(),
+                "Receiver".to_string(),
+                rand::thread_rng().gen_range(0..100_000_000 as u64),
+            );
+        }
         assert_eq!(blnch.tr_queue.len(), 3);
     }
 
@@ -158,12 +161,23 @@ mod tests {
     fn mint_test() {
         let mut blnch: Blockchain = Blockchain::new();
         blnch.tr_queue.push_back(Transaction {
-            from: String::from("Sender"),
-            to: String::from("Receiver"),
-            amount: 21u64,
+            from: "Sender".to_string(),
+            to: "Receiver".to_string(),
+            amount: rand::thread_rng().gen_range(0..100_000_000 as u64),
         });
         blnch.mint();
         assert_eq!(blnch.chain.len(), 2);
-        assert!(blnch.chain.back().unwrap().clone().hash.chars().filter(|&c| c == '1').count() >= 6);
+        assert!(
+            blnch
+                .chain
+                .back()
+                .unwrap()
+                .clone()
+                .hash
+                .chars()
+                .filter(|&c| c == '1')
+                .count()
+                >= 6
+        );
     }
 }

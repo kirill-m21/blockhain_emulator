@@ -1,7 +1,9 @@
+use borsh::{BorshDeserialize, BorshSerialize};
 use chrono::Utc;
-use num_bigint::{BigInt, RandomBits};
 use rand::Rng;
 use sha2::{Digest, Sha256};
+use std::fs;
+use std::io::prelude::*;
 use std::time::Duration;
 use std::{
     collections::{LinkedList, VecDeque},
@@ -14,7 +16,7 @@ use block::header::Header;
 use block::transaction::Transaction;
 use block::Block;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize, PartialEq)]
 pub struct Blockchain {
     pub chain: LinkedList<Block>,
     pub tr_queue: VecDeque<Transaction>,
@@ -28,16 +30,16 @@ impl Blockchain {
 
         let genesis = Block {
             header: Header {
-                timestamp: "0".to_string(),
-                nonce: (BigInt::from(0)),
+                timestamp: (String::from("0")),
+                nonce: (0u128),
             },
             tr_data: Transaction {
-                from: "Satoshi".to_string(),
-                to: "GENESIS".to_string(),
+                from: String::from("Satoshi"),
+                to: String::from("GENESIS"),
                 amount: 100_000_000,
             },
             hash: Utc::now().timestamp().to_string(),
-            prev_hash: "0".to_string(),
+            prev_hash: String::from("0"),
         };
 
         block_chain_tmp.push_back(genesis);
@@ -60,8 +62,8 @@ impl Blockchain {
 
         let mut new_block = Block {
             header: Header {
-                timestamp: "0".to_string(),
-                nonce: BigInt::from(0),
+                timestamp: (String::from("0")),
+                nonce: (0u128),
             },
             tr_data: self.tr_queue.front().unwrap().clone(),
             hash: String::from(""),
@@ -76,7 +78,7 @@ impl Blockchain {
             sum_string.push_str(&new_block.tr_data.to);
             sum_string.push_str(&new_block.tr_data.amount.to_string());
 
-            new_block.header.nonce = rand::thread_rng().sample(RandomBits::new(256));
+            new_block.header.nonce = rand::thread_rng().gen::<u128>();
             sum_string.push_str(&new_block.header.nonce.to_string());
 
             let mut hasher = Sha256::new();
@@ -130,8 +132,8 @@ impl Blockchain {
                 let rand_num = rand::thread_rng().gen_range(0..vec_blnch.len());
                 let mut tmp_blnch = vec_blnch[rand_num].clone();
                 tmp_blnch.new_transaction(
-                    "Sender".to_string(),
-                    "Receiver".to_string(),
+                    String::from("sender"),
+                    String::from("receiver"),
                     rand::thread_rng().gen_range(0..100_000_000 as u64),
                 );
                 tmp_blnch.mint();
@@ -151,8 +153,8 @@ impl Blockchain {
                 if tmp_blnch.chain.len() != 1 {
                     tmp_blnch.chain.pop_back();
                     tmp_blnch.new_transaction(
-                        "Sender".to_string(),
-                        "Receiver".to_string(),
+                        String::from("sender"),
+                        String::from("receiver"),
                         rand::thread_rng().gen_range(0..100_000_000 as u64),
                     );
                     tmp_blnch.mint();
@@ -216,6 +218,17 @@ impl Blockchain {
             }
         }
     }
+
+    pub fn save(&self, path: String) -> std::io::Result<()> {
+        fs::write(path, self.try_to_vec().unwrap())
+    }
+
+    pub fn load(path: String) -> std::io::Result<Blockchain> {
+        let mut file: fs::File = fs::File::open(path)?;
+        let mut undecoded_blockchain = Vec::<u8>::new();
+        file.read_to_end(&mut undecoded_blockchain).unwrap();
+        Ok(Blockchain::try_from_slice(&undecoded_blockchain).unwrap())
+    }
 }
 
 #[cfg(test)]
@@ -227,16 +240,16 @@ mod tests {
         let blnch: Blockchain = Blockchain::new();
         let genesis = Block {
             header: Header {
-                timestamp: "0".to_string(),
-                nonce: BigInt::from(0),
+                timestamp: (String::from("0")),
+                nonce: (0u128),
             },
             tr_data: Transaction {
-                from: "Satoshi".to_string(),
-                to: "GENESIS".to_string(),
+                from: String::from("Satoshi"),
+                to: String::from("GENESIS"),
                 amount: 100_000_000,
             },
             hash: Utc::now().timestamp().to_string(),
-            prev_hash: "0".to_string(),
+            prev_hash: String::from("0"),
         };
         assert_eq!(blnch.chain.front().unwrap(), &genesis);
     }
@@ -244,23 +257,21 @@ mod tests {
     #[test]
     fn new_transaction_test() {
         let mut blnch: Blockchain = Blockchain::new();
-        for _index in 0..3 {
-            blnch.new_transaction(
-                "Sender".to_string(),
-                "Receiver".to_string(),
-                rand::thread_rng().gen_range(0..100_000_000 as u64),
-            );
-        }
-        assert_eq!(blnch.tr_queue.len(), 3);
+        blnch.new_transaction(
+            String::from("sender"),
+            String::from("receiver"),
+            rand::thread_rng().gen_range(0..100_000_000 as u64),
+        );
+        assert_eq!(blnch.tr_queue.len(), 1);
     }
 
     #[test]
     fn mint_test() {
         let mut blnch: Blockchain = Blockchain::new();
         blnch.tr_queue.push_back(Transaction {
-            from: "Sender".to_string(),
-            to: "Receiver".to_string(),
-            amount: rand::thread_rng().gen_range(0..100_000_000 as u64),
+            from: String::from("Sender"),
+            to: String::from("Receiver"),
+            amount: 21u64,
         });
         blnch.mint();
         assert_eq!(blnch.chain.len(), 2);
@@ -285,5 +296,24 @@ mod tests {
         let duration_sec: u64 = 1000;
         blnch.fork(duration_sec); // will stop if the largest chain is found or time is out
         assert_ne!(blocks, blnch.chain.len());
+    }
+
+    #[test]
+    fn save_test() {
+        let path = String::from("serialized_blockchain");
+        let blnch: Blockchain = Blockchain::new();
+        blnch.save(path.clone()).expect("Can't save file!");
+        let serialize = blnch.try_to_vec().expect("Can't serialize!");
+        let some_data = fs::read(path).expect("Cant open file!");
+        assert_eq!(serialize, some_data);
+    }
+
+    #[test]
+    fn load_test() {
+        let path = String::from("serialized_blockchain");
+        let blnch: Blockchain = Blockchain::new();
+        fs::write(path.clone(), blnch.try_to_vec().unwrap()).expect("Cant write a file!");
+        let test_blnch: Blockchain = Blockchain::load(path).expect("Cant load file!");
+        assert_eq!(blnch, test_blnch);
     }
 }

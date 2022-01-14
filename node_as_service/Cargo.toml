@@ -1,13 +1,16 @@
 [package]
-name = "fork_and_consensus"
+name = "node_as_service"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sha2 = "0.10.1"
-hex-literal = "0.3.4"
+sha2 = "0.10.0"
 chrono = "0.4"
 rand = "0.8"
-num-bigint = { version = "0.4", features = ["rand"] }
+borsh = "0.9.1"
+actix-web = "3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+futures = "0.3"

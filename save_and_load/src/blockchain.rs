@@ -30,16 +30,16 @@ impl Blockchain {
 
         let genesis = Block {
             header: Header {
-                timestamp: (String::from("0")),
-                nonce: (0u128),
+                timestamp: "0".to_string(),
+                nonce: 0u128,
             },
             tr_data: Transaction {
-                from: String::from("Satoshi"),
-                to: String::from("GENESIS"),
+                from: "Satoshi".to_string(),
+                to: "GENESIS".to_string(),
                 amount: 100_000_000,
             },
             hash: Utc::now().timestamp().to_string(),
-            prev_hash: String::from("0"),
+            prev_hash: "0".to_string(),
         };
 
         block_chain_tmp.push_back(genesis);
@@ -50,14 +50,8 @@ impl Blockchain {
         }
     }
 
-    pub fn new_transaction(&mut self, tr_amount: usize) {
-        for _iter in 0..tr_amount {
-            self.tr_queue.push_back(Transaction {
-                from: String::from("sender"),
-                to: String::from("receiver"),
-                amount: rand::thread_rng().gen_range(0..100_000_000 as u64),
-            });
-        }
+    pub fn new_transaction(&mut self, from: String, to: String, amount: u64) {
+        self.tr_queue.push_back(Transaction { from, to, amount });
     }
 
     pub fn mint(&mut self) {
@@ -68,8 +62,8 @@ impl Blockchain {
 
         let mut new_block = Block {
             header: Header {
-                timestamp: (String::from("0")),
-                nonce: (0u128),
+                timestamp: "0".to_string(),
+                nonce: 0u128,
             },
             tr_data: self.tr_queue.front().unwrap().clone(),
             hash: String::from(""),
@@ -137,7 +131,11 @@ impl Blockchain {
             if block_duration >= time_new_block {
                 let rand_num = rand::thread_rng().gen_range(0..vec_blnch.len());
                 let mut tmp_blnch = vec_blnch[rand_num].clone();
-                tmp_blnch.new_transaction(1);
+                tmp_blnch.new_transaction(
+                    "Sender".to_string(),
+                    "Receiver".to_string(),
+                    rand::thread_rng().gen_range(0..100_000_000 as u64),
+                );
                 tmp_blnch.mint();
                 vec_blnch[rand_num] = tmp_blnch;
                 println!(
@@ -154,7 +152,11 @@ impl Blockchain {
                 let mut tmp_blnch = vec_blnch[rand_num].clone();
                 if tmp_blnch.chain.len() != 1 {
                     tmp_blnch.chain.pop_back();
-                    tmp_blnch.new_transaction(1);
+                    tmp_blnch.new_transaction(
+                        "Sender".to_string(),
+                        "Receiver".to_string(),
+                        rand::thread_rng().gen_range(0..100_000_000 as u64),
+                    );
                     tmp_blnch.mint();
                     vec_blnch.push(tmp_blnch);
                     println!("Fork size -> {}", vec_blnch.len());
@@ -238,16 +240,16 @@ mod tests {
         let blnch: Blockchain = Blockchain::new();
         let genesis = Block {
             header: Header {
-                timestamp: (String::from("0")),
-                nonce: (0u128),
+                timestamp: "0".to_string(),
+                nonce: 0u128,
             },
             tr_data: Transaction {
-                from: String::from("Satoshi"),
-                to: String::from("GENESIS"),
+                from: "Satoshi".to_string(),
+                to: "GENESIS".to_string(),
                 amount: 100_000_000,
             },
             hash: Utc::now().timestamp().to_string(),
-            prev_hash: String::from("0"),
+            prev_hash: "0".to_string(),
         };
         assert_eq!(blnch.chain.front().unwrap(), &genesis);
     }
@@ -255,7 +257,13 @@ mod tests {
     #[test]
     fn new_transaction_test() {
         let mut blnch: Blockchain = Blockchain::new();
-        blnch.new_transaction(3);
+        for _index in 0..3 {
+            blnch.new_transaction(
+                "Sender".to_string(),
+                "Receiver".to_string(),
+                rand::thread_rng().gen_range(0..100_000_000 as u64),
+            );
+        }
         assert_eq!(blnch.tr_queue.len(), 3);
     }
 
@@ -263,13 +271,24 @@ mod tests {
     fn mint_test() {
         let mut blnch: Blockchain = Blockchain::new();
         blnch.tr_queue.push_back(Transaction {
-            from: String::from("Sender"),
-            to: String::from("Receiver"),
-            amount: 21u64,
+            from: "Sender".to_string(),
+            to: "Receiver".to_string(),
+            amount: rand::thread_rng().gen_range(0..100_000_000 as u64),
         });
         blnch.mint();
         assert_eq!(blnch.chain.len(), 2);
-        assert!(blnch.chain.back().unwrap().clone().hash.chars().filter(|&c| c == '1').count() >= 6);
+        assert!(
+            blnch
+                .chain
+                .back()
+                .unwrap()
+                .clone()
+                .hash
+                .chars()
+                .filter(|&c| c == '1')
+                .count()
+                >= 6
+        );
     }
 
     #[test]
