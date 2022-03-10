@@ -1,0 +1,23 @@
+[package]
+name = "blockchain-network"
+version = "0.1.0"
+authors = ["Mileta Kirill"]
+edition = "2018"
+
+[dependencies]
+actix-web = "3"
+actix-service = "2.0.2"
+futures = "0.3"
+env_logger = "0.9.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+json = "0.12"
+sha2 = "0.10.0"
+chrono = "0.4"
+rand = "0.8"
+awc = "2"
+openssl = { version = "0.10", features = ["vendored"] }
+async-std = "1.10.0"
+
+[dev-dependencies]
+actix-rt = "2.6.0"
